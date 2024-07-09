@@ -1,20 +1,51 @@
 name: check
 on:
- pull_request:
-  branches:
-   - main
+  pull_request:
+    branches:
+      - main
 jobs:
- test:
-  name: Check the source code
-  runs-on: ubuntu-latest
-  steps:
-   - uses: actions/checkout@v3
-   - uses: subosito/flutter-action@v2.3.0
-     with:
-      flutter-version: '3.19.0'
-   - name: Install packages
-     run: flutter pub get
-   - name: Linter
-     run: flutter analyze
-   - name: Test
-     run: flutter test
+  test:
+    name: Check the source code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2.3.0
+        with:
+          flutter-version: "3.19.0"
+      - name: Install packages
+        run: flutter pub get
+      - name: Linter
+        run: flutter analyze
+      - name: Test
+        run: flutter test
+
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+      - name: Setup Melos
+        uses: bluefireteam/melos-action@v2
+      - name: Fix Lint All Packages
+        run: melos run lint
+      - name: Format All Packages
+        run: melos run format
+      - name: Commit and Push Changes
+        run: |
+          if ! git diff --exit-code --quiet
+          then
+            git add .
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "clean: format"
+            git push
+          fi
